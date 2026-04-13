@@ -90,6 +90,18 @@ async function handleSubscriptionAssigned(payload) {
   const normalizedEmail = email.trim().toLowerCase();
   const subscriptionType = OFFER_TYPE_MAP[offerIdStr] || "unknown";
 
+  // Split user_name into first/last for Meta's fn/ln fields.
+  // Treat first word as first name, everything else as last name.
+  let firstName = null;
+  let lastName = null;
+  if (name && name.trim()) {
+    const parts = name.trim().split(/\s+/);
+    firstName = parts[0];
+    if (parts.length > 1) {
+      lastName = parts.slice(1).join(" ");
+    }
+  }
+
   // Use a composite event ID for deduplication:
   // If Meta receives the same event_id within 48 hours, it deduplicates.
   const eventId = `uscreen_${offerIdStr}_${transactionId || Date.now()}`;
@@ -102,6 +114,8 @@ async function handleSubscriptionAssigned(payload) {
   try {
     const result = await sendSubscribeEvent({
       email: normalizedEmail,
+      firstName,
+      lastName,
       eventId,
       eventTime,
       subscriptionType,

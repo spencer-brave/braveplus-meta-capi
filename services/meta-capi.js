@@ -30,6 +30,8 @@ function sha256(value) {
 // Returns { success, eventsReceived, messages } or throws.
 async function sendSubscribeEvent({
   email,
+  firstName = null,
+  lastName = null,
   eventId,
   eventTime,
   subscriptionType,
@@ -62,6 +64,14 @@ async function sendSubscribeEvent({
       currency,
     },
   };
+
+  // Add hashed first/last name if available — improves EMQ score
+  if (firstName) {
+    eventData.user_data.fn = sha256(firstName);
+  }
+  if (lastName) {
+    eventData.user_data.ln = sha256(lastName);
+  }
 
   if (value !== null && value !== undefined) {
     eventData.custom_data.value = value;
