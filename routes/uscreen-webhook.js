@@ -21,6 +21,7 @@ const router = express.Router();
 
 const { sendSubscribeEvent } = require("../services/meta-capi");
 const { logToXano } = require("../services/xano");
+const { getCustomerName } = require("../services/uscreen");
 
 // ── Paid BRAVE+ offer IDs ────────────────────────────────
 // Only these Uscreen offers should be forwarded to Meta.
@@ -32,8 +33,8 @@ const PAID_OFFER_IDS = new Set([
 
 // Map offer IDs to human-readable subscription types
 const OFFER_TYPE_MAP = {
-  "223749": "annual",
-  "190342": "monthly",
+  223749: "annual",
+  190342: "monthly",
 };
 
 router.post("/", (req, res) => {
@@ -59,7 +60,7 @@ router.post("/", (req, res) => {
 async function handleSubscriptionAssigned(payload) {
   const {
     user_email: email,
-    user_name: name,
+    user_id: userId,
     subscription_id: offerId,
     subscription_title: offerTitle,
     transaction_id: transactionId,
@@ -76,7 +77,9 @@ async function handleSubscriptionAssigned(payload) {
   }
 
   if (!email) {
-    console.error(`[Uscreen Webhook] No email in payload — cannot send to Meta`);
+    console.error(
+      `[Uscreen Webhook] No email in payload — cannot send to Meta`,
+    );
     await logToXano({
       customerEmail: "unknown",
       action: "meta_capi_subscribe",
@@ -90,17 +93,9 @@ async function handleSubscriptionAssigned(payload) {
   const normalizedEmail = email.trim().toLowerCase();
   const subscriptionType = OFFER_TYPE_MAP[offerIdStr] || "unknown";
 
-  // Split user_name into first/last for Meta's fn/ln fields.
-  // Treat first word as first name, everything else as last name.
-  let firstName = null;
-  let lastName = null;
-  if (name && name.trim()) {
-    const parts = name.trim().split(/\s+/);
-    firstName = parts[0];
-    if (parts.length > 1) {
-      lastName = parts.slice(1).join(" ");
-    }
-  }
+  // Fetch customer name from Uscreen API for better Meta matching.
+  // This is non-blocking — if it fails, we still send the event with email only.
+  const { firstName, lastName } = await getCustomerName(userId);
 
   // Use a composite event ID for deduplication:
   // If Meta receives the same event_id within 48 hours, it deduplicates.
