@@ -48,7 +48,7 @@ async function sendSubscribeEvent({
   const hashedEmail = sha256(email);
 
   const eventData = {
-    event_name: "Subscribe",
+    event_name: "Purchase",
     event_time: eventTime,
     event_id: eventId,
     // "other" is the correct action_source for server-side events
