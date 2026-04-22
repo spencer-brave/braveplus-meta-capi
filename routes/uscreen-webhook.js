@@ -19,7 +19,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { sendSubscribeEvent } = require("../services/meta-capi");
+const { sendPurchaseEvent } = require("../services/meta-capi");
 const { logToXano } = require("../services/xano");
 const { getCustomerName } = require("../services/uscreen");
 
@@ -33,8 +33,14 @@ const PAID_OFFER_IDS = new Set([
 
 // Map offer IDs to human-readable subscription types
 const OFFER_TYPE_MAP = {
-  223749: "annual",
-  190342: "monthly",
+  "223749": "annual",
+  "190342": "monthly",
+};
+
+// Map offer IDs to their price for Meta's value parameter
+const OFFER_PRICE_MAP = {
+  "223749": 59.99,
+  "190342": 6.99,
 };
 
 router.post("/", (req, res) => {
@@ -77,9 +83,7 @@ async function handleSubscriptionAssigned(payload) {
   }
 
   if (!email) {
-    console.error(
-      `[Uscreen Webhook] No email in payload — cannot send to Meta`,
-    );
+    console.error(`[Uscreen Webhook] No email in payload — cannot send to Meta`);
     await logToXano({
       customerEmail: "unknown",
       action: "meta_capi_subscribe",
@@ -107,13 +111,14 @@ async function handleSubscriptionAssigned(payload) {
   );
 
   try {
-    const result = await sendSubscribeEvent({
+    const result = await sendPurchaseEvent({
       email: normalizedEmail,
       firstName,
       lastName,
       eventId,
       eventTime,
       subscriptionType,
+      value: OFFER_PRICE_MAP[offerIdStr] || null,
       // Optionally include test event code during setup
       testEventCode: process.env.META_TEST_EVENT_CODE || null,
     });

@@ -26,9 +26,9 @@ function sha256(value) {
     .digest("hex");
 }
 
-// ── Send a Subscribe event to Meta CAPI ──────────────────
+// ── Send a Purchase event to Meta CAPI ───────────────────
 // Returns { success, eventsReceived, messages } or throws.
-async function sendSubscribeEvent({
+async function sendPurchaseEvent({
   email,
   firstName = null,
   lastName = null,
@@ -119,4 +119,4 @@ async function sendSubscribeEvent({
   };
 }
 
-module.exports = { sendSubscribeEvent, sha256 };
+module.exports = { sendPurchaseEvent, sha256 };
